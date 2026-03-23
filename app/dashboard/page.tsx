@@ -50,7 +50,7 @@ function DashboardContent() {
   async function handleSignOut() {
     const supabase = createBrowserClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    window.location.href = "/login";
   }
 
   return (
