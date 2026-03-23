@@ -24,9 +24,9 @@ export function useXConnection() {
         .from("x_connections")
         .select("*")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
-      setConnection(data);
+      setConnection(data ?? null);
       setLoading(false);
     }
     fetch();
