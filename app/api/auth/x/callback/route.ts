@@ -11,6 +11,8 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const state = searchParams.get("state");
 
+  console.log("X Callback: code =", !!code, "state =", !!state);
+
   if (!code || !state) {
     return NextResponse.redirect(
       `${origin}/dashboard?error=missing_params`
@@ -19,6 +21,8 @@ export async function GET(request: Request) {
 
   // Validate state and get code_verifier
   const oauthState = await getAndDeleteOAuthState(state);
+  console.log("X Callback: oauthState found =", !!oauthState);
+
   if (!oauthState) {
     return NextResponse.redirect(
       `${origin}/dashboard?error=invalid_state`
@@ -37,6 +41,8 @@ export async function GET(request: Request) {
 
   try {
     const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/x/callback`;
+    console.log("X Callback: exchanging code for tokens");
+
     const { userClient, accessToken, refreshToken, expiresIn } =
       await exchangeCodeForTokens(
         code,
@@ -44,8 +50,11 @@ export async function GET(request: Request) {
         redirectUri
       );
 
+    console.log("X Callback: tokens received, fetching user info");
+
     // Get X user info
     const { data: xUser } = await userClient.v2.me();
+    console.log("X Callback: X user =", xUser.username);
 
     // Store tokens encrypted in Vault
     await storeTokensInVault(
@@ -58,10 +67,13 @@ export async function GET(request: Request) {
       xUser.name ?? null
     );
 
+    console.log("X Callback: tokens stored, redirecting to dashboard");
+
     return NextResponse.redirect(
       `${origin}/dashboard?x_connected=true`
     );
-  } catch {
+  } catch (err) {
+    console.error("X Callback error:", err);
     return NextResponse.redirect(
       `${origin}/dashboard?error=x_connect_failed`
     );
