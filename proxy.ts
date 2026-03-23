@@ -2,14 +2,33 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Public routes — skip auth entirely
+  if (
+    pathname === "/login" ||
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/api/cron/") ||
+    pathname.startsWith("/api/auth/x/")
+  ) {
+    return NextResponse.next();
+  }
+
+  // Check env vars exist
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseKey) {
+    console.error("Missing Supabase env vars in proxy");
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (cookiesToSet) => {
@@ -22,32 +41,21 @@ export async function proxy(request: NextRequest) {
           });
         },
       },
+    });
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.redirect(new URL("/login", request.url));
     }
-  );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  const { pathname } = request.nextUrl;
-
-  // Public routes — no auth required
-  if (
-    pathname === "/login" ||
-    pathname.startsWith("/auth/callback") ||
-    pathname.startsWith("/api/cron/") ||
-    pathname.startsWith("/api/auth/x/")
-  ) {
     return response;
+  } catch (err) {
+    console.error("Proxy auth error:", err);
+    return NextResponse.redirect(new URL("/login", request.url));
   }
-
-  // Redirect unauthenticated users to login
-  if (!user) {
-    const loginUrl = new URL("/login", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  return response;
 }
 
 export const config = {
