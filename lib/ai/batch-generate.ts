@@ -14,7 +14,7 @@ function getSystemPrompt(
   const typeInstructions: Record<ContentType, string> = {
     tweet: `Generate unique X (Twitter) posts. Each must be under ${maxLength} characters. Follow a hook-body-CTA structure. No hashtags unless they add real value.`,
     article: `Generate unique long-form X (Twitter) thread starters / article-style posts. Each must be under ${maxLength} characters. These should be substantive, insight-driven posts that could stand alone or open a thread.`,
-    reply: `Generate unique reply-style posts for engaging with other accounts on X. Each must be under ${maxLength} characters. These should add value, offer a unique perspective, or build on the original post's idea. Never be generic or sycophantic.`,
+    reply: `Generate unique replies to specific tweets provided by the user. Each reply must be under ${maxLength} characters. Each reply should add value, offer a unique perspective, or build on the original tweet's idea. Never be generic, sycophantic, or say "great point". Match one reply per tweet provided.`,
   };
 
   return `You are an expert content writer. ${typeInstructions[contentType]}
@@ -99,16 +99,38 @@ export async function batchGenerate({
     // Request extra to account for dedup filtering
     const requestCount = Math.min(thisBatch + 5, 30);
 
-    const prompt = [
-      `Topic: ${topic}`,
-      tone ? `Tone: ${tone}` : null,
-      `Generate exactly ${requestCount} unique posts.`,
-      allItems.length > 0
-        ? `ALREADY GENERATED (do NOT repeat these ideas):\n${allItems.map((item, idx) => `${idx + 1}. ${item.content.slice(0, 80)}...`).join("\n")}`
-        : null,
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    let prompt: string;
+
+    if (contentType === "reply") {
+      // For replies, parse the topic as a list of tweets (one per line)
+      const tweetLines = topic
+        .split("\n")
+        .map((l) => l.trim())
+        .filter(Boolean);
+      const batchTweets = tweetLines.slice(
+        i * batchSize,
+        i * batchSize + requestCount
+      );
+      prompt = [
+        `Generate a unique, insightful reply for each of the following tweets:`,
+        ...batchTweets.map((t, idx) => `Tweet ${idx + 1}: "${t}"`),
+        tone ? `\nTone: ${tone}` : null,
+        `\nGenerate exactly ${batchTweets.length} replies, one per tweet above.`,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    } else {
+      prompt = [
+        `Topic: ${topic}`,
+        tone ? `Tone: ${tone}` : null,
+        `Generate exactly ${requestCount} unique posts.`,
+        allItems.length > 0
+          ? `ALREADY GENERATED (do NOT repeat these ideas):\n${allItems.map((item, idx) => `${idx + 1}. ${item.content.slice(0, 80)}...`).join("\n")}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n\n");
+    }
 
     const model = genAI.getGenerativeModel({
       model: "gemini-2.0-flash-lite",

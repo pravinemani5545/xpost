@@ -87,6 +87,17 @@ export function BatchGenerator() {
     setMaxLength(CONTENT_TYPE_CONFIG[contentType].defaultMaxLength);
   }, [contentType]);
 
+  // Auto-set count to match number of tweets in reply mode
+  const replyTweetCount = contentType === "reply"
+    ? topic.split("\n").filter((l) => l.trim()).length
+    : 0;
+
+  useEffect(() => {
+    if (contentType === "reply" && replyTweetCount > 0) {
+      setCount(Math.min(replyTweetCount, 100));
+    }
+  }, [contentType, replyTweetCount]);
+
   const saveStyle = useCallback(async () => {
     if (writingStyle.length < 10) return;
     setStyleSaving(true);
@@ -307,14 +318,27 @@ export function BatchGenerator() {
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground mb-1.5 block">
-                Topic / Research Area
+                {contentType === "reply"
+                  ? "Tweets to Reply To"
+                  : "Topic / Research Area"}
               </Label>
               <Textarea
-                placeholder="What should the posts be about? Be specific — include key ideas, angles, or references you want covered..."
+                placeholder={
+                  contentType === "reply"
+                    ? "Paste tweets here, one per line. Each line = one tweet you want to generate a reply for.\n\ne.g.\nAI won't replace developers, but developers who use AI will replace those who don't.\nThe best code is no code at all. Every line you write is a liability.\nShipping fast is a competitive advantage most teams underestimate."
+                    : "What should the posts be about? Be specific — include key ideas, angles, or references you want covered..."
+                }
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="min-h-[80px] resize-none bg-card border-border text-sm"
+                className={`resize-none bg-card border-border text-sm ${
+                  contentType === "reply" ? "min-h-[160px] font-mono text-xs" : "min-h-[80px]"
+                }`}
               />
+              {contentType === "reply" && topic.trim() && (
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  {topic.split("\n").filter((l) => l.trim()).length} tweet{topic.split("\n").filter((l) => l.trim()).length !== 1 ? "s" : ""} detected
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -366,20 +390,22 @@ export function BatchGenerator() {
                 </Select>
               </div>
 
-              {/* Count */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-1.5 block">
-                  Count ({count})
-                </Label>
-                <Input
-                  type="range"
-                  min={1}
-                  max={100}
-                  value={count}
-                  onChange={(e) => setCount(Number(e.target.value))}
-                  className="h-9 bg-card border-border accent-primary cursor-pointer"
-                />
-              </div>
+              {/* Count — hidden in reply mode (auto-set from tweet count) */}
+              {contentType !== "reply" && (
+                <div>
+                  <Label className="text-xs text-muted-foreground mb-1.5 block">
+                    Count ({count})
+                  </Label>
+                  <Input
+                    type="range"
+                    min={1}
+                    max={100}
+                    value={count}
+                    onChange={(e) => setCount(Number(e.target.value))}
+                    className="h-9 bg-card border-border accent-primary cursor-pointer"
+                  />
+                </div>
+              )}
 
               {/* Max Length */}
               <div>
