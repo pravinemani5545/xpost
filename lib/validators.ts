@@ -30,6 +30,22 @@ export const GenerateInputSchema = z.object({
   audience: z.string().max(200).optional(),
 });
 
+export const BatchGenerateInputSchema = z.object({
+  topic: z
+    .string()
+    .min(10, { error: "Topic must be at least 10 characters" })
+    .max(1000),
+  writing_style: z
+    .string()
+    .min(10, { error: "Writing style must be at least 10 characters" })
+    .max(2000),
+  content_type: z.enum(["tweet", "article", "reply"]),
+  tone: z.enum(["technical", "casual", "contrarian", "educational"]).optional(),
+  count: z.number().int().min(1).max(100),
+  max_length: z.number().int().min(50).max(4000),
+});
+
 export type CreateTweetInput = z.infer<typeof CreateTweetSchema>;
 export type UpdateTweetInput = z.infer<typeof UpdateTweetSchema>;
 export type GenerateInput = z.infer<typeof GenerateInputSchema>;
+export type BatchGenerateInput = z.infer<typeof BatchGenerateInputSchema>;

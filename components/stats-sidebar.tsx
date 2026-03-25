@@ -1,7 +1,7 @@
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { XConnectButton } from "@/components/x-connect-button";
-import { Download, LogOut } from "lucide-react";
+import { Download, LogOut, Sparkles } from "lucide-react";
 import type { Tweet } from "@/types";
 
 interface StatsSidebarProps {
@@ -36,6 +36,23 @@ export function StatsSidebar({ tweets, onSignOut }: StatsSidebarProps) {
           <StatBlock label="Posted" value={posted} color="text-[#c8f55a]" />
           <StatBlock label="Failed" value={failed} color="text-[#ff5f5f]" />
         </div>
+      </div>
+
+      <Separator className="bg-border" />
+
+      <div className="space-y-2">
+        <h3 className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          Tools
+        </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full justify-start text-xs text-muted-foreground hover:text-primary"
+          render={<a href="/dashboard/batch" />}
+        >
+          <Sparkles className="mr-1.5 h-3 w-3" />
+          Batch Generate
+        </Button>
       </div>
 
       <Separator className="bg-border" />

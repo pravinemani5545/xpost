@@ -36,6 +36,22 @@ export interface TweetVariation {
   estimated_engagement: "low" | "medium" | "high";
 }
 
+export type ContentType = "tweet" | "article" | "reply";
+
+export interface BatchGeneratedItem {
+  content: string;
+  content_type: ContentType;
+  hook_type: string;
+  estimated_engagement: "low" | "medium" | "high";
+}
+
+export interface WritingStyle {
+  id: string;
+  user_id: string;
+  style: string;
+  updated_at: string;
+}
+
 export const TIME_SLOT_HOURS: Record<Exclude<TimeSlot, "custom">, number> = {
   "9AM": 9,
   "12PM": 12,
